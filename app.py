@@ -72,7 +72,12 @@ def form_post():
         session["temperature"] = temperature
 
         session.modified = True
-        return render_template("home.html", history=session["history"])
+        return render_template(
+            "home.html",
+            history=session["history"],
+            model=session["model"],
+            temperature=session["temperature"],
+        )
 
     else:
         return render_template(
