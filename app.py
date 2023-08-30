@@ -92,7 +92,11 @@ with gr.Blocks() as demo:
         )
 
         get_chat_interface(system_prompt, True)
-        gr.Examples(example_system_prompts, inputs=[system_prompt], label="System Prompt Examples")
+        gr.Examples(
+            example_system_prompts,
+            inputs=[system_prompt],
+            label="System Prompt Examples",
+        )
 
     with gr.Tab("Translate"):
         with gr.Row():
@@ -116,6 +120,4 @@ with gr.Blocks() as demo:
             outputs=[target_text],
         )
 
-
-if __name__ == "__main__":
-    demo.launch(host="0.0.0.0")
+    demo.launch(server_name="0.0.0.0", server_port=7860)
