@@ -1,107 +1,123 @@
-import os
-import openai
+import gradio as gr
 from dotenv import load_dotenv, find_dotenv
-from flask import Flask, request, render_template, session, redirect, url_for
-from flask_session import Session
+
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
+from langchain.chains import LLMChain
 
 # read env variables from the local .env file
 _ = load_dotenv(find_dotenv())
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+DEFAULT_TEMP = 0.7
+DEFAULT_MODEL = "gpt-3.5-turbo"
+
+example_system_prompts = [
+    "You are a Grammar Checker. Correct grammatical errors in the input text while preserving its original meaning and style.",
+    "You are a Content Optimizer. Your task is to polish the input text for better clarity, fluency, and impact, without altering its fundamental meaning.",
+    "You are a Text Summarizer. Provide a concise summary of the input text within 100 words, capturing its essential points.",
+]
 
 
-def get_chat_response(prompt, model="gpt-3.5-turbo", temperature=1):
-    messages = [{"role": "user", "content": prompt}]
-    response = openai.ChatCompletion.create(
-        model=model, messages=messages, temperature=temperature
+def get_openai_model(model=DEFAULT_MODEL, temperature=DEFAULT_TEMP):
+    return ChatOpenAI(model=model, temperature=temperature)
+
+
+def get_chat_response(
+    message, history, system_prompt, model, temperature, enable_memory
+):
+    prompt = get_prompt(system_prompt, enable_memory)
+    conversation = LLMChain(
+        llm=get_openai_model(model, temperature),
+        prompt=prompt,
+        memory=memory if enable_memory else None,
     )
-    return response
+    return conversation.predict(input=message)
 
 
-def try_get_chat_response(prompt, model="gpt-3.5-turbo", temperature=1):
-    response = None
-    error_message = ""
-    try:
-        response = get_chat_response(prompt, model, temperature)
-    except openai.error.Timeout as e:
-        error_message = f"OpenAI API request timed out: {e}"
-    except openai.error.APIError as e:
-        error_message = f"OpenAI API returned an API Error: {e}"
-    except openai.error.APIConnectionError as e:
-        error_message = f"OpenAI API request failed to connect: {e}"
-    except openai.error.InvalidRequestError as e:
-        error_message = f"OpenAI API request was invalid: {e}"
-    except openai.error.AuthenticationError as e:
-        error_message = f"OpenAI API request was not authorized: {e}"
-    except openai.error.PermissionError as e:
-        error_message = f"OpenAI API request was not permitted: {e}"
-    except openai.error.RateLimitError as e:
-        error_message = f"OpenAI API request exceeded rate limit: {e}"
-    except Exception as e:
-        error_message = f"OpenAI API exception: {e}"
+def get_prompt(system_prompt, enable_memory):
+    messages = [SystemMessagePromptTemplate.from_template(system_prompt)]
+    if enable_memory:
+        messages.append(MessagesPlaceholder(variable_name="chat_history"))
+    messages.append(HumanMessagePromptTemplate.from_template("{input}"))
 
-    return response, error_message
+    return ChatPromptTemplate(messages=messages)
 
 
-app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SESSION_KEY")
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_USE_SIGNER"] = True
-Session(app)
+def get_chat_interface(system_prompt, enable_memory):
+    return gr.ChatInterface(
+        get_chat_response,
+        theme="soft",
+        retry_btn=None,
+        undo_btn=None,
+        clear_btn="Clear",
+        additional_inputs=[
+            system_prompt,
+            gr.Radio(
+                ["gpt-3.5-turbo", "gpt-4"], value=DEFAULT_MODEL, label="GPT Model"
+            ),
+            gr.Slider(0, 2, value=DEFAULT_TEMP, label="Temperature"),
+            gr.Checkbox(value=enable_memory, label="Enable Memory"),
+        ],
+    )
 
 
-@app.route("/chat", methods=["GET", "POST"])
-def form_post():
-    if "history" not in session:
-        session["history"] = []
+def translate(source_text, target_language, model, temperature):
+    system_prompt = get_translation_system_prompt(target_language)
+    return get_chat_response(source_text, _, system_prompt, model, temperature, False)
 
-    if request.method == "POST":
-        prompt = request.form["text"]
-        model = request.form.get("model")
-        temperature = float(request.form.get("temperature"))
 
-        response, error_message = try_get_chat_response(prompt, model, temperature)
+def get_translation_system_prompt(target_language):
+    return (
+        f"You are a Language Translator. Convert the user's input to {target_language}, outputting only the translated text."
+        f"If the input is already in {target_language}, output it as-is."
+    )
 
-        output = (
-            error_message
-            if response is None
-            else response.choices[0].message["content"]
+
+memory = ConversationBufferWindowMemory(
+    memory_key="chat_history", return_messages=True, k=8
+)
+
+with gr.Blocks() as demo:
+    with gr.Tab("Chat"):
+        system_prompt = gr.Textbox(
+            value="You are an AI Chat Assistant.",
+            label="System Prompt",
+            interactive=True,
         )
 
-        session["history"].append({"User": prompt, "GPT": output})
-        session["model"] = model
-        session["temperature"] = temperature
-
-        session.modified = True
-        return render_template(
-            "home.html",
-            history=session["history"],
-            model=session["model"],
-            temperature=session["temperature"],
+        get_chat_interface(system_prompt, True)
+        gr.Examples(
+            example_system_prompts,
+            inputs=[system_prompt],
+            label="System Prompt Examples",
         )
 
-    else:
-        return render_template(
-            "home.html",
-            history=session["history"],
-            model=session.get("model", "gpt-3.5-turbo"),
-            temperature=session.get("temperature", 1),
+    with gr.Tab("Translate"):
+        with gr.Row():
+            with gr.Column():
+                source_text = gr.Text(label="Input Text", lines=5)
+            with gr.Column():
+                target_text = gr.Text(label="Translated Text", lines=5)
+        submit = gr.Button("Translate")
+        target_language = gr.Dropdown(
+            ["English", "中文", "Español", "Français", "Deutsch"],
+            label="Target Language",
+            value="English",
+        )
+        model = gr.Radio(
+            ["gpt-3.5-turbo", "gpt-4"], value=DEFAULT_MODEL, label="GPT Model"
+        )
+        temperature = gr.Slider(0, 2, value=DEFAULT_TEMP, label="Temperature")
+        submit.click(
+            translate,
+            inputs=[source_text, target_language, model, temperature],
+            outputs=[target_text],
         )
 
-
-@app.route("/clear", methods=["POST"])
-def clear_history():
-    keep = int(request.form.get("keep", 0))
-
-    if keep == 0:
-        session["history"] = []
-    else:
-        # Keep only the last 'keep' messages
-        session["history"] = session["history"][-keep:]
-    session.modified = True
-
-    # Redirect back to the chat
-    return redirect(url_for("form_post"))
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0")
+    demo.launch(server_name="0.0.0.0", server_port=7860)
