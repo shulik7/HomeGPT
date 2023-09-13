@@ -27,9 +27,14 @@ example_system_prompts = [
 def get_openai_model(model=DEFAULT_MODEL, temperature=DEFAULT_TEMP):
     return ChatOpenAI(model=model, temperature=temperature)
 
+def get_chat_response_history(
+    message, history, system_prompt, model, temperature, enable_memory
+):
+    return get_chat_response(message, system_prompt, model, temperature, enable_memory)
+
 
 def get_chat_response(
-    message, history, system_prompt, model, temperature, enable_memory
+    message, system_prompt, model, temperature, enable_memory
 ):
     prompt = get_prompt(system_prompt, enable_memory)
     conversation = LLMChain(
@@ -38,7 +43,6 @@ def get_chat_response(
         memory=memory if enable_memory else None,
     )
     return conversation.predict(input=message)
-
 
 def get_prompt(system_prompt, enable_memory):
     messages = [SystemMessagePromptTemplate.from_template(system_prompt)]
@@ -51,7 +55,7 @@ def get_prompt(system_prompt, enable_memory):
 
 def get_chat_interface(system_prompt, enable_memory):
     return gr.ChatInterface(
-        get_chat_response,
+        get_chat_response_history,
         theme="soft",
         retry_btn=None,
         undo_btn=None,
@@ -69,7 +73,7 @@ def get_chat_interface(system_prompt, enable_memory):
 
 def translate(source_text, target_language, model, temperature):
     system_prompt = get_translation_system_prompt(target_language)
-    return get_chat_response(source_text, _, system_prompt, model, temperature, False)
+    return get_chat_response(source_text, system_prompt, model, temperature, False)
 
 
 def get_translation_system_prompt(target_language):
