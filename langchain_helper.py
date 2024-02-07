@@ -1,7 +1,7 @@
 import openai_helper
 
 from langchain.memory import ConversationBufferWindowMemory
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import (
     PromptTemplate,
     ChatPromptTemplate,
@@ -12,10 +12,10 @@ from langchain.prompts import (
 
 from langchain.chains import LLMChain, StuffDocumentsChain
 
-from langchain.document_loaders import AsyncChromiumLoader
-from langchain.document_transformers import BeautifulSoupTransformer
-from langchain.document_loaders import OnlinePDFLoader
-from langchain.document_loaders import YoutubeLoader
+from langchain_community.document_loaders import AsyncChromiumLoader
+from langchain_community.document_transformers import BeautifulSoupTransformer
+from langchain_community.document_loaders import OnlinePDFLoader
+from langchain_community.document_loaders import YoutubeLoader
 
 memory = ConversationBufferWindowMemory(
     memory_key="chat_history", return_messages=True, k=3
