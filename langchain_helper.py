@@ -1,4 +1,3 @@
-import os
 import openai_helper
 
 from langchain.memory import ConversationBufferWindowMemory
@@ -11,9 +10,8 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 
-from langchain.chains import LLMChain, StuffDocumentsChain, summarize
+from langchain.chains import LLMChain, StuffDocumentsChain
 
-from langchain.document_loaders import UnstructuredURLLoader
 from langchain.document_loaders import AsyncChromiumLoader
 from langchain.document_transformers import BeautifulSoupTransformer
 from langchain.document_loaders import OnlinePDFLoader
@@ -23,24 +21,32 @@ memory = ConversationBufferWindowMemory(
     memory_key="chat_history", return_messages=True, k=3
 )
 
+
 def try_map_model(model, model_dict):
     if model in model_dict:
-        return model_dict[model]    
+        return model_dict[model]
     return model
 
 
 def get_openai_model(model=openai_helper.GPT3, temperature=openai_helper.DEFAULT_TEMP):
-    return ChatOpenAI(model=try_map_model(model, openai_helper.MODEL_DICT), temperature=temperature)
+    return ChatOpenAI(
+        model=try_map_model(model, openai_helper.MODEL_DICT), temperature=temperature
+    )
 
-def get_chat_response_history(
-    message, history, model, temperature, enable_memory
-):
+
+def get_chat_response_history(message, history, model, temperature, enable_memory):
     return get_response(message, "", model, temperature, enable_memory)
 
+
 def get_text_process_response(
-    message, history, system_prompt, model, temperature,
+    message,
+    history,
+    system_prompt,
+    model,
+    temperature,
 ):
     return get_response(message, system_prompt, model, temperature, None)
+
 
 def get_response(message, system_prompt, model, temperature, enable_memory):
     prompt = get_prompt(system_prompt, enable_memory)
@@ -60,6 +66,7 @@ def get_prompt(system_prompt, enable_memory):
 
     return ChatPromptTemplate(messages=messages)
 
+
 def process_input(input_type, input, history, system_prompt, model, temperature):
     process_func = get_process_func(input_type)
     return process_func(input, history, system_prompt, model, temperature)
@@ -74,15 +81,21 @@ def get_process_func(input_type):
         return process_online_pdf
     if input_type == "Youtube URL":
         return process_youtube
-    
+
     raise Exception(f"Unsupported input type:{input_type}")
 
+
 def process_text(
-    input, history, system_prompt, model, temperature,
+    input,
+    history,
+    system_prompt,
+    model,
+    temperature,
 ):
     response = get_response(input, system_prompt, model, temperature, None)
     history.append((input, response))
     return "", history
+
 
 def translate(source_text, target_language, model, temperature):
     system_prompt = get_translation_system_prompt(target_language)
@@ -94,6 +107,7 @@ def get_translation_system_prompt(target_language):
         f"You are a Language Translator. Convert the user's input to {target_language}, outputting only the translated text."
         f"If the input is already in {target_language}, output it as-is."
     )
+
 
 def process_url(input, history, system_prompt, model, temperature):
     prompt_template = system_prompt + "{text}"
@@ -113,6 +127,7 @@ def process_url(input, history, system_prompt, model, temperature):
     history.append((input, response))
     return "", history
 
+
 def process_online_pdf(input, history, system_prompt, model, temperature):
     prompt_template = system_prompt + "{text}"
     prompt = PromptTemplate.from_template(prompt_template)
@@ -127,13 +142,13 @@ def process_online_pdf(input, history, system_prompt, model, temperature):
     history.append((input, response))
     return "", history
 
+
 def process_youtube(input, history, system_prompt, model, temperature):
     prompt_template = system_prompt + "{text}"
     prompt = PromptTemplate.from_template(prompt_template)
     llm = get_openai_model(model, temperature)
     llm_chain = LLMChain(llm=llm, prompt=prompt)
     chain = StuffDocumentsChain(llm_chain=llm_chain, input_key="text")
-
 
     loader = YoutubeLoader.from_youtube_url(input, add_video_info=True)
     youtube_transcript = loader.load()
