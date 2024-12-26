@@ -49,7 +49,9 @@ def get_text_process_response(
 
 
 def get_response(message, system_prompt, model, temperature, enable_memory):
-    prompt = get_prompt(system_prompt, enable_memory)
+    if model.startswith("o1"):
+        temperature = 1
+    prompt = get_prompt(system_prompt, enable_memory, model)
     conversation = LLMChain(
         llm=get_openai_model(model, temperature),
         prompt=prompt,
@@ -58,8 +60,10 @@ def get_response(message, system_prompt, model, temperature, enable_memory):
     return conversation.predict(input=message)
 
 
-def get_prompt(system_prompt, enable_memory):
-    messages = [SystemMessagePromptTemplate.from_template(system_prompt)]
+def get_prompt(system_prompt, enable_memory, model):
+    messages = []
+    if not model.startswith("o1"):
+        messages.append(SystemMessagePromptTemplate.from_template(system_prompt))
     if enable_memory:
         messages.append(MessagesPlaceholder(variable_name="chat_history"))
     messages.append(HumanMessagePromptTemplate.from_template("{input}"))

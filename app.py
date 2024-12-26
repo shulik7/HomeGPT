@@ -30,8 +30,8 @@ with gr.Blocks() as demo:
             value="English",
         )
         model = gr.Radio(
-            [openai_helper.GPT3, openai_helper.GPT4],
-            value=openai_helper.GPT3,
+            [openai_helper.GPT4O_MINI, openai_helper.GPT4O],
+            value=openai_helper.GPT4O_MINI,
             label="GPT Model",
         )
         temperature = gr.Slider(
@@ -57,8 +57,8 @@ with gr.Blocks() as demo:
 
         submit = gr.Button("Process")
         model = gr.Radio(
-            [openai_helper.GPT3, openai_helper.GPT4],
-            value=openai_helper.GPT3,
+            [openai_helper.GPT4O_MINI, openai_helper.GPT4O],
+            value=openai_helper.GPT4O_MINI,
             label="GPT Model",
         )
         temperature = gr.Slider(

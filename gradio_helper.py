@@ -12,8 +12,8 @@ def get_chat_interface(enable_memory):
         clear_btn="Clear",
         additional_inputs=[
             gr.Radio(
-                [openai_helper.GPT3, openai_helper.GPT4],
-                value=openai_helper.GPT3,
+                [openai_helper.CHAT4O, openai_helper.GPT4O_MINI, openai_helper.O1, openai_helper.O1_MINI],
+                value=openai_helper.CHAT4O,
                 label="GPT Model",
             ),
             gr.Slider(0, 2, value=openai_helper.DEFAULT_TEMP, label="Temperature"),
@@ -32,8 +32,8 @@ def get_text_interface(system_prompt):
         additional_inputs=[
             system_prompt,
             gr.Radio(
-                [openai_helper.GPT3, openai_helper.GPT4],
-                value=openai_helper.GPT3,
+                [openai_helper.GPT4O_MINI, openai_helper.GPT4O],
+                value=openai_helper.GPT4O_MINI,
                 label="GPT Model",
             ),
             gr.Slider(0, 2, value=openai_helper.DEFAULT_TEMP, label="Temperature"),
