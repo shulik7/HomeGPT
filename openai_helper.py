@@ -1,21 +1,34 @@
-import os
+"""
+OpenAI model configuration and constants.
+
+This module defines available OpenAI models and their API identifiers.
+"""
 
 DEFAULT_TEMP = 0.7
-GPT3 = "gpt-3.5-turbo-16k"
-GPT4 = "gpt-4-turbo-128k"
-GPT4O = "gpt-4o"
-CHAT4O = "chatgpt-4o"
-GPT4O_MINI = "gpt-4o-mini"
-O1 = "o1-preview"
+
+# Current GPT-4 Models (November 2025)
+GPT4O = "GPT-4o"
+GPT4O_MINI = "GPT-4o mini"
+
+# O1 Reasoning Models
+O1 = "o1"
 O1_MINI = "o1-mini"
+O1_PREVIEW = "o1-preview"
+
+# GPT-4 Turbo (Legacy but still useful)
+GPT4_TURBO = "GPT-4 Turbo"
+
+# Older GPT-4 (for specific needs)
+GPT4 = "GPT-4"
 
 
 MODEL_DICT = {
-    GPT3: "gpt-3.5-turbo-0125",
-    GPT4: "gpt-4-turbo-preview",
     GPT4O: "gpt-4o",
-    CHAT4O: "chatgpt-4o-latest",
     GPT4O_MINI: "gpt-4o-mini",
-    O1: "o1-preview",
-    O1_MINI: "o1-mini"
+    O1: "o1",
+    O1_MINI: "o1-mini",
+    O1_PREVIEW: "o1-preview",
+    GPT4_TURBO: "gpt-4-turbo",
+    GPT4: "gpt-4",
 }
+
